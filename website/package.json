@@ -18,7 +18,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "analyze": "vite build --mode analyze",
-    "size": "pnpm build && echo '\\n📦 Bundle Size:' && du -sh dist && echo '\\n📊 File Breakdown:' && find dist -name '*.js' -o -name '*.css' | xargs du -h | sort -h",
+    "size": "pnpm build && echo '\\n📦 Bundle Size:' && find dist -type f -exec stat -f%z {} + | awk '{s+=$1} END {printf \"%.1f KB\\n\", s/1024}' && echo '\\n📊 File Breakdown:' && find dist -name '*.js' -o -name '*.css' -o -name '*.html' | xargs ls -lh | awk '{printf \"%s %s\\n\", $5, $9}' | sort -h",
     "size:detail": "pnpm build && echo '\\n📦 Total Size:' && du -sh dist && echo '\\n📊 All Files:' && du -ah dist | sort -h",
     "size:check": "pnpm build && size=$(find dist -type f -exec stat -f%z {} + | awk '{s+=$1} END {print s}') && if [ \"$size\" -gt 102400 ]; then echo \"❌ Build size ($size bytes) exceeds 100KB limit!\"; exit 1; else echo \"✅ Build size ($size bytes) is within 100KB limit\"; fi",
     "test:a11y": "vitest run --dir src/__tests__/a11y",
