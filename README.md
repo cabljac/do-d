@@ -2,15 +2,15 @@
 
 A real-time, multiplayer virtual tabletop application built with modern web technologies, designed for tabletop gaming sessions with features like game boards, tokens, dice rolling, and chat.
 
-[![Bundle Analysis](https://github.com/cabljac/virtual-tabletop/actions/workflows/analyze.yml/badge.svg)](https://github.com/cabljac/virtual-tabletop/actions/workflows/analyze.yml)
-[![Tests](https://github.com/cabljac/virtual-tabletop/actions/workflows/test.yml/badge.svg)](https://github.com/cabljac/virtual-tabletop/actions/workflows/test.yml)
-[![Biome](https://github.com/cabljac/virtual-tabletop/actions/workflows/biome.yml/badge.svg)](https://github.com/cabljac/virtual-tabletop/actions/workflows/biome.yml)
+[![Bundle Analysis](https://github.com/cabljac/do-d/actions/workflows/analyze.yml/badge.svg)](https://github.com/cabljac/virtual-tabletop/actions/workflows/analyze.yml)
+[![Tests](https://github.com/cabljac/do-d/actions/workflows/test.yml/badge.svg)](https://github.com/cabljac/virtual-tabletop/actions/workflows/test.yml)
+[![Biome](https://github.com/cabljac/do-d/actions/workflows/biome.yml/badge.svg)](https://github.com/cabljac/virtual-tabletop/actions/workflows/biome.yml)
 
 ## 📊 Reports & Analysis
 
-- **📦 [Bundle Analysis](https://cabljac.github.io/virtual-tabletop/)** - JavaScript and CSS bundle size analysis
-- **🔍 [Quality Reports](https://cabljac.github.io/virtual-tabletop/quality/)** - Test coverage and performance results
-- **📋 [All Reports](https://cabljac.github.io/virtual-tabletop/reports.html)** - Complete reports index
+- **📦 [Bundle Analysis](https://cabljac.github.io/do-d/)** - JavaScript and CSS bundle size analysis
+- **🔍 [Quality Reports](https://cabljac.github.io/do-d/quality/)** - Test coverage and performance results
+- **📋 [All Reports](https://cabljac.github.io/do-d/reports.html)** - Complete reports index
 
 ## Architecture Overview
 

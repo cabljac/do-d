@@ -15,7 +15,7 @@ cat > dist/stats.html << EOF
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bundle Analysis - Virtual Tabletop</title>
+    <title>Bundle Analysis - Durable Objects & Dragons</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; }
         h1 { color: #333; }
@@ -27,7 +27,7 @@ cat > dist/stats.html << EOF
 </head>
 <body>
     <h1>Bundle Analysis</h1>
-    <p>Bundle size analysis for the Virtual Tabletop application.</p>
+    <p>Bundle size analysis for the Durable Objects & Dragons application.</p>
     
     <div class="file-list">
         <h3>Generated Files:</h3>

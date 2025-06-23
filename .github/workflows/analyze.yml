@@ -38,7 +38,6 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm -F website exec playwright install chromium
 
-
       - name: Run tests with coverage
         run: pnpm -F website run test:coverage
         env:
@@ -79,10 +78,10 @@ jobs:
           echo "Building project for bundle analysis..."
           cd website
           pnpm build
-          
+
           # Generate bundle analysis report
           echo "Generating bundle analysis..."
-          
+
           # Calculate sizes
           if [ -d "dist" ]; then
             TOTAL_SIZE=$(du -sb dist | cut -f1)
@@ -114,9 +113,9 @@ jobs:
             CSS_SIZE=0
             HTML_SIZE=0
           fi
-          
+
           cd ..
-          
+
           # Create bundle report
           cat > _site/index.html << EOF
           <!DOCTYPE html>
@@ -124,7 +123,7 @@ jobs:
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Bundle Analysis - Virtual Tabletop</title>
+            <title>Bundle Analysis - Durable Objects & Dragons</title>
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { 
@@ -228,7 +227,7 @@ jobs:
             <div class="container">
               <div class="card">
                 <h1>📊 Bundle Analysis Report</h1>
-                <p>Production build analysis for Virtual Tabletop</p>
+                <p>Production build analysis for Durable Objects & Dragons</p>
                 
                 <div class="metrics">
                   <div class="metric">
@@ -249,7 +248,7 @@ jobs:
                   </div>
                 </div>
           EOF
-          
+
           # Add file list if dist exists
           if [ -d "website/dist" ]; then
             echo '<div class="files"><h2>File Breakdown</h2><div class="file-list">' >> _site/index.html
@@ -263,7 +262,7 @@ jobs:
             
             echo '</div></div>' >> _site/index.html
           fi
-          
+
           cat >> _site/index.html << EOF
                 <div class="nav-links">
                   <a href="quality/">View Quality Reports</a>
@@ -274,7 +273,7 @@ jobs:
           </body>
           </html>
           EOF
-          
+
           echo "✅ Bundle analysis report created"
 
           # Create quality directory
@@ -329,7 +328,7 @@ jobs:
           </body>
           </html>
           EOF
-          
+
           # Also save the URL to a JSON file for potential API access
           echo "{\"url\": \"$LIGHTHOUSE_URL\", \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\", \"commit\": \"${{ github.sha }}\"}" > _site/quality/lighthouse/latest.json
           else
@@ -385,7 +384,7 @@ jobs:
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Quality Reports - Virtual Tabletop</title>
+            <title>Quality Reports - Durable Objects & Dragons</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
               h1 { color: #333; }
@@ -415,7 +414,7 @@ jobs:
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Reports - Virtual Tabletop</title>
+            <title>Reports - Durable Objects & Dragons</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
               h1 { color: #333; }
@@ -427,7 +426,7 @@ jobs:
             </style>
           </head>
           <body>
-            <h1>Virtual Tabletop Reports</h1>
+            <h1>Durable Objects & Dragons Reports</h1>
             <p class="description">Performance, quality, and bundle analysis reports for the Virtual Tabletop application.</p>
             <ul class="report-links">
               <li><a href="quality/">Quality Reports (Accessibility & Performance)</a></li>
