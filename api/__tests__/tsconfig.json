@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext"],
+    "types": ["../worker-configuration.d.ts", "@cloudflare/vitest-pool-workers"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../worker-configuration.d.ts"]
+}

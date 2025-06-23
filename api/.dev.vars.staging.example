@@ -1,0 +1,6 @@
+# Example environment variables for staging
+# Copy this to .dev.vars.staging and update with your values
+
+# For staging environment
+FRONTEND_URL=https://staging.yourvtt.com
+ENVIRONMENT=staging

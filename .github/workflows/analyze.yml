@@ -1,0 +1,476 @@
+name: Reports & Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  reports:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm -F website exec playwright install chromium
+
+
+      - name: Run tests with coverage
+        run: pnpm -F website run test:coverage
+        env:
+          CI: true
+          VITE_CREATE_ROOM_API_KEY: ci-test-api-key
+          VITE_API_URL: http://localhost:8787
+
+      - name: Run Lighthouse CI
+        id: lighthouse
+        run: |
+          # Run Lighthouse CI and capture output
+          OUTPUT=$(pnpm -F website test:perf 2>&1 || true)
+          echo "$OUTPUT"
+
+          # Extract the results URL from the output
+          RESULTS_URL=$(echo "$OUTPUT" | grep -o 'https://storage.googleapis.com/[^ ]*\.report\.html' | head -1)
+
+          if [ -n "$RESULTS_URL" ]; then
+            echo "LIGHTHOUSE_URL=$RESULTS_URL" >> $GITHUB_OUTPUT
+            echo "::notice title=Lighthouse Results::View results at $RESULTS_URL"
+          else
+            echo "LIGHTHOUSE_URL=" >> $GITHUB_OUTPUT
+            echo "::warning::Could not extract Lighthouse results URL"
+          fi
+        env:
+          CI: true
+          LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+          LHCI_BUILD_CONTEXT__GITHUB_REPO_SLUG: ${{ github.repository }}
+          VITE_CREATE_ROOM_API_KEY: ci-test-api-key
+          VITE_API_URL: http://localhost:8787
+
+      - name: Create pages directory
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p _site
+
+          # Build the project and generate bundle analysis RIGHT NOW
+          echo "Building project for bundle analysis..."
+          cd website
+          pnpm build
+          
+          # Generate bundle analysis report
+          echo "Generating bundle analysis..."
+          
+          # Calculate sizes
+          if [ -d "dist" ]; then
+            TOTAL_SIZE=$(du -sb dist | cut -f1)
+            JS_FILES=$(find dist -name "*.js" -type f)
+            CSS_FILES=$(find dist -name "*.css" -type f)
+            HTML_FILES=$(find dist -name "*.html" -type f)
+            
+            JS_SIZE=0
+            CSS_SIZE=0  
+            HTML_SIZE=0
+            
+            for f in $JS_FILES; do
+              size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
+              JS_SIZE=$((JS_SIZE + size))
+            done
+            
+            for f in $CSS_FILES; do
+              size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
+              CSS_SIZE=$((CSS_SIZE + size))
+            done
+            
+            for f in $HTML_FILES; do
+              size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
+              HTML_SIZE=$((HTML_SIZE + size))
+            done
+          else
+            TOTAL_SIZE=0
+            JS_SIZE=0
+            CSS_SIZE=0
+            HTML_SIZE=0
+          fi
+          
+          cd ..
+          
+          # Create bundle report
+          cat > _site/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Bundle Analysis - Virtual Tabletop</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f5f5f5;
+                line-height: 1.6;
+              }
+              .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 2rem;
+              }
+              .card {
+                background: white;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                margin-bottom: 2rem;
+              }
+              h1 { 
+                color: #333;
+                margin-bottom: 1rem;
+              }
+              .metrics {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin: 2rem 0;
+              }
+              .metric {
+                background: #f8f9fa;
+                padding: 1.5rem;
+                border-radius: 4px;
+                text-align: center;
+                border: 1px solid #e9ecef;
+              }
+              .metric-label {
+                color: #6c757d;
+                font-size: 0.875rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 0.5rem;
+              }
+              .metric-value {
+                font-size: 2.5rem;
+                font-weight: bold;
+                color: #212529;
+              }
+              .metric-value.js { color: #f7df1e; }
+              .metric-value.css { color: #264de4; }
+              .metric-value.html { color: #e34c26; }
+              .files {
+                margin-top: 2rem;
+              }
+              .file-list {
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                overflow: hidden;
+              }
+              .file-item {
+                display: flex;
+                justify-content: space-between;
+                padding: 1rem;
+                border-bottom: 1px solid #dee2e6;
+                transition: background 0.2s;
+              }
+              .file-item:last-child {
+                border-bottom: none;
+              }
+              .file-item:hover {
+                background: #f8f9fa;
+              }
+              .file-name {
+                font-family: 'Monaco', 'Consolas', monospace;
+                color: #495057;
+              }
+              .file-size {
+                font-weight: 600;
+                color: #28a745;
+              }
+              .nav-links {
+                margin-top: 2rem;
+                text-align: center;
+              }
+              .nav-links a {
+                display: inline-block;
+                padding: 0.75rem 1.5rem;
+                background: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                margin: 0 0.5rem;
+                transition: background 0.2s;
+              }
+              .nav-links a:hover {
+                background: #0056b3;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="card">
+                <h1>📊 Bundle Analysis Report</h1>
+                <p>Production build analysis for Virtual Tabletop</p>
+                
+                <div class="metrics">
+                  <div class="metric">
+                    <div class="metric-label">Total Size</div>
+                    <div class="metric-value">$(echo $TOTAL_SIZE | awk '{printf "%.1f KB", $1/1024}')</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">JavaScript</div>
+                    <div class="metric-value js">$(echo $JS_SIZE | awk '{printf "%.1f KB", $1/1024}')</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">CSS</div>
+                    <div class="metric-value css">$(echo $CSS_SIZE | awk '{printf "%.1f KB", $1/1024}')</div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-label">HTML</div>
+                    <div class="metric-value html">$(echo $HTML_SIZE | awk '{printf "%.1f KB", $1/1024}')</div>
+                  </div>
+                </div>
+          EOF
+          
+          # Add file list if dist exists
+          if [ -d "website/dist" ]; then
+            echo '<div class="files"><h2>File Breakdown</h2><div class="file-list">' >> _site/index.html
+            
+            # List all files with sizes
+            find website/dist -type f -exec ls -la {} \; | sort -k5 -rn | head -20 | while read perms links owner group size date time file; do
+              filename=$(basename "$file")
+              filesize=$(echo $size | awk '{if($1>1024*1024) printf "%.1f MB", $1/(1024*1024); else if($1>1024) printf "%.1f KB", $1/1024; else printf "%d B", $1}')
+              echo "<div class='file-item'><span class='file-name'>$filename</span><span class='file-size'>$filesize</span></div>" >> _site/index.html
+            done
+            
+            echo '</div></div>' >> _site/index.html
+          fi
+          
+          cat >> _site/index.html << EOF
+                <div class="nav-links">
+                  <a href="quality/">View Quality Reports</a>
+                  <a href="https://github.com/${{ github.repository }}">View Repository</a>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+          EOF
+          
+          echo "✅ Bundle analysis report created"
+
+          # Create quality directory
+          mkdir -p _site/quality
+
+          # Create Lighthouse results page with redirect
+          mkdir -p _site/quality/lighthouse
+
+          # Try to get the Lighthouse URL from the step output
+          LIGHTHOUSE_URL="${{ steps.lighthouse.outputs.LIGHTHOUSE_URL }}"
+
+          if [ -n "$LIGHTHOUSE_URL" ]; then
+            # Create a page with the latest results link (no redirect)
+            cat > _site/quality/lighthouse/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Lighthouse Performance Results</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+              h1 { color: #333; }
+              .info { background: #f8f9fa; padding: 2rem; border-radius: 8px; margin: 2rem 0; border: 1px solid #dee2e6; }
+              .report-link { display: inline-block; padding: 1rem 2rem; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; margin: 1rem 0; }
+              .report-link:hover { background: #218838; }
+              .details { margin: 2rem 0; padding: 1rem; background: #e9ecef; border-radius: 4px; }
+              .timestamp { color: #6c757d; font-size: 0.875rem; }
+              code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace; }
+            </style>
+          </head>
+          <body>
+            <h1>🚀 Lighthouse Performance Results</h1>
+            <div class="info">
+              <p><strong>Latest report available!</strong></p>
+              <a href="$LIGHTHOUSE_URL" target="_blank" class="report-link">View Lighthouse Report →</a>
+              <p class="timestamp">Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+              <p class="timestamp">Commit: ${{ github.sha }}</p>
+            </div>
+            <div class="details">
+              <h2>About this report</h2>
+              <p>This Lighthouse report analyzes:</p>
+              <ul>
+                <li>Performance metrics (LCP, FCP, CLS, etc.)</li>
+                <li>Accessibility compliance</li>
+                <li>Best practices</li>
+                <li>SEO optimization</li>
+              </ul>
+              <p><strong>Note:</strong> Each build generates a new report URL. Bookmark the report if you need to reference it later.</p>
+            </div>
+            <p><a href="../">← Back to Quality Reports</a></p>
+          </body>
+          </html>
+          EOF
+          
+          # Also save the URL to a JSON file for potential API access
+          echo "{\"url\": \"$LIGHTHOUSE_URL\", \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\", \"commit\": \"${{ github.sha }}\"}" > _site/quality/lighthouse/latest.json
+          else
+            # Create a simple fallback page
+            cat > _site/quality/lighthouse/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Lighthouse Report - Pending</title>
+          </head>
+          <body style="font-family: sans-serif; padding: 2rem; text-align: center;">
+            <h1>Lighthouse Report</h1>
+            <p>No Lighthouse report URL available for this build.</p>
+            <p><a href="../">Back to Quality Reports</a></p>
+          </body>
+          </html>
+          EOF
+          fi
+
+          # Create test coverage results page
+          mkdir -p _site/quality/coverage
+
+          # Check if coverage report exists and copy it
+          if [ -d "website/coverage" ] && [ -f "website/coverage/index.html" ]; then
+            # Copy coverage report files
+            cp website/coverage/*.{html,css,js,png} _site/quality/coverage/ 2>/dev/null || true
+            cp website/coverage/coverage-final.json _site/quality/coverage/ 2>/dev/null || true
+          else
+            # Create a simple fallback page
+            cat > _site/quality/coverage/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Test Coverage Report - Pending</title>
+          </head>
+          <body style="font-family: sans-serif; padding: 2rem; text-align: center;">
+            <h1>Test Coverage Report</h1>
+            <p>No coverage report available for this build.</p>
+            <p><a href="../">Back to Quality Reports</a></p>
+          </body>
+          </html>
+          EOF
+          fi
+
+          # Create quality index page
+          cat > _site/quality/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Quality Reports - Virtual Tabletop</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+              h1 { color: #333; }
+              .report-links { list-style: none; padding: 0; }
+              .report-links li { margin: 1rem 0; }
+              .report-links a { display: inline-block; padding: 0.75rem 1.5rem; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; }
+              .report-links a:hover { background: #0052a3; }
+              .timestamp { color: #666; font-size: 0.9em; }
+            </style>
+          </head>
+          <body>
+            <h1>Quality Reports</h1>
+            <p class="timestamp">Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+            <ul class="report-links">
+              <li><a href="coverage/">Test Coverage Report</a></li>
+              <li><a href="lighthouse/">Lighthouse Performance Report</a></li>
+              <li><a href="../">Back to Bundle Analysis</a></li>
+            </ul>
+          </body>
+          </html>
+          EOF
+
+          # Create main reports index page
+          cat > _site/reports.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reports - Virtual Tabletop</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+              h1 { color: #333; }
+              .report-links { list-style: none; padding: 0; }
+              .report-links li { margin: 1rem 0; }
+              .report-links a { display: inline-block; padding: 0.75rem 1.5rem; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; }
+              .report-links a:hover { background: #0052a3; }
+              .description { color: #666; margin-bottom: 1rem; }
+            </style>
+          </head>
+          <body>
+            <h1>Virtual Tabletop Reports</h1>
+            <p class="description">Performance, quality, and bundle analysis reports for the Virtual Tabletop application.</p>
+            <ul class="report-links">
+              <li><a href="quality/">Quality Reports (Accessibility & Performance)</a></li>
+              <li><a href="index.html">Bundle Analysis</a></li>
+            </ul>
+          </body>
+          </html>
+          EOF
+
+          echo "Created _site directory with:"
+          ls -la _site/
+          echo "Quality directory contents:"
+          ls -la _site/quality/
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Upload analysis report
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' && success()
+        with:
+          name: bundle-analysis-report
+          path: _site/index.html
+          retention-days: 30
+
+      - name: Upload full build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-build-analysis
+          path: website/dist
+          retention-days: 7
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: reports
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

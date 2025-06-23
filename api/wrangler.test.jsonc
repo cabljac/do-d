@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vtt-game",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-20",
+  "compatibility_flags": ["durable_object_alarms"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["GameRoom"],
+      "tag": "v1"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "GameRoom",
+        "name": "GAME_ROOM"
+      }
+    ]
+  },
+  "vars": {
+    "FRONTEND_URL": "http://localhost:3000",
+    "CREATE_ROOM_API_KEY": "dev-key-for-testing"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

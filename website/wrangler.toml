@@ -1,0 +1,14 @@
+name = "virtual-tabletop"
+compatibility_date = "2025-06-17"
+
+[site]
+bucket = "./dist"
+
+[build]
+command = "pnpm build"
+
+[env.production]
+name = "virtual-tabletop"
+
+[env.staging]
+name = "virtual-tabletop-staging"

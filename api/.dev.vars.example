@@ -1,0 +1,7 @@
+# Example environment variables for local development
+# Copy this to .dev.vars and update with your values
+
+# For development environment
+FRONTEND_URL=http://localhost:3000
+ENVIRONMENT=development
+CREATE_ROOM_API_KEY=dev-key-for-testing

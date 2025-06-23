@@ -1,0 +1,16 @@
+{
+  "name": "Durable Objects & Dragons",
+  "short_name": "VTT",
+  "description": "Virtual tabletop for playing tabletop RPGs online with friends",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {
+      "src": "/icons8-dragon-color-glass-32.png.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

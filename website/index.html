@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons8-dragon-color-glass-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons8-dragon-color-glass-16.png" />
+    <link rel="apple-touch-icon" sizes="96x96" href="/icons8-dragon-color-glass-96.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Virtual tabletop for playing tabletop RPGs online with friends">
+    <title>Durable Objects & Dragons</title>
+    
+    <!-- Critical inline styles for initial render -->
+    <style>
+      /* Critical CSS to prevent layout shift */
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #0f1618;
+        color: #e0f2fe;
+        min-height: 100vh;
+      }
+      /* Show lobby by default, hide game */
+      #lobby { display: block; }
+      #game { display: none; }
+      .lobby-container { 
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 1rem;
+      }
+      /* Critical styles for h1 to prevent render delay */
+      .lobby-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #14b8a6;
+        line-height: 1.2;
+        /* Optimize for LCP - no gradient initially */
+      }
+      /* Progressive enhancement for gradient when CSS loads */
+      .css-loaded .lobby-title {
+        background: linear-gradient(135deg, #14b8a6, #06b6d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      /* Critical styles for lobby sections */
+      .lobby-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+      }
+      .section-heading {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #22d3ee;
+      }
+      .fantasy-input, .fantasy-button {
+        display: block;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+      }
+      .fantasy-input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e0f2fe;
+      }
+      .fantasy-button {
+        background: #14b8a6;
+        color: #0f1618;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+    
+  </head>
+  <body>
+    <!-- Lobby -->
+    <main id="lobby" role="main" aria-label="Game Lobby" class="lobby-container">
+      <h1 class="lobby-title">Durable Objects & Dragons</h1>
+      <section aria-labelledby="create-room-heading" class="lobby-section">
+        <h2 id="create-room-heading" class="section-heading">Create New Room</h2>
+        <input 
+          type="password" 
+          id="room-password" 
+          placeholder="Room password (optional)"
+          aria-label="Room password (optional)"
+          class="fantasy-input">
+        <button id="create-room" type="button" class="fantasy-button">Create Room</button>
+      </section>
+      
+      <form id="join-room" aria-labelledby="join-room-heading" class="lobby-section">
+        <h2 id="join-room-heading" class="section-heading">Join Existing Room</h2>
+        <input 
+          type="text" 
+          id="room-id" 
+          placeholder="Room ID" 
+          required
+          aria-label="Room ID"
+          aria-required="true"
+          class="fantasy-input">
+        <input 
+          type="password" 
+          id="join-room-password" 
+          placeholder="Room password (if required)"
+          aria-label="Room password (if required)"
+          class="fantasy-input">
+        <button type="submit" class="fantasy-button">Join Room</button>
+      </form>
+    </main>
+
+    <!-- Game -->
+    <div id="game" role="application" aria-label="Durable Objects & Dragons Game" class="game-container">
+      <div class="canvas-container">
+        <canvas 
+          id="game-canvas"
+          role="img"
+          aria-label="Game board canvas. Use arrow keys to pan, mouse wheel to zoom, and click to interact with tokens"
+          tabindex="0"
+          class="game-canvas">
+        </canvas>
+      </div>
+      
+      <aside id="sidebar" role="complementary" aria-label="Game controls and chat" class="game-sidebar">
+        <div id="connection-status" role="status" aria-live="polite" aria-label="Connection status" class="connection-status">Connecting...</div>
+        <div id="room-info" role="status" aria-label="Room information" class="room-info"></div>
+        
+        <section id="player-list" role="region" aria-label="Players in game" class="player-list-section">
+          <h2 class="visually-hidden">Players</h2>
+        </section>
+        
+        <section id="token-controls" role="region" aria-label="Token controls" class="token-controls-section">
+          <h2 class="visually-hidden">Token Controls</h2>
+        </section>
+        
+        <section id="chat" role="region" aria-label="Game chat" class="chat-section">
+          <h2 class="visually-hidden">Chat</h2>
+          <div 
+            id="chat-messages" 
+            role="log" 
+            aria-live="polite" 
+            aria-label="Chat messages"
+            tabindex="0"
+            class="chat-messages">
+          </div>
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="Type a message or /roll 1d20"
+            aria-label="Chat message input. Press Enter to send"
+            class="chat-input">
+        </section>
+      </aside>
+    </div>
+
+    <script type="module" src="/src/main.ts" defer></script>
+  </body>
+</html>

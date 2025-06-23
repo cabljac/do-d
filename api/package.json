@@ -1,0 +1,26 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "preinstall": "node -e \"if (process.env.npm_execpath && !process.env.npm_execpath.includes('pnpm')) { console.error('\\u001b[31m❌ Please use pnpm instead of npm/yarn\\u001b[0m'); process.exit(1); }\"",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "dev": "wrangler dev --env dev",
+    "start": "wrangler dev --env dev",
+    "cf-typegen": "wrangler types",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.2",
+    "wrangler": "^4.20.5",
+    "vitest": "~3.2.0",
+    "@cloudflare/vitest-pool-workers": "^0.8.43"
+  }
+}

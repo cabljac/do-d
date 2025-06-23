@@ -1,0 +1,53 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vtt-game",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["durable_object_alarms"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["GameRoom"],
+      "tag": "v1"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "GameRoom",
+        "name": "GAME_ROOM"
+      }
+    ]
+  },
+  "vars": {
+    "FRONTEND_URL": "https://yourvtt.com",
+    "ENVIRONMENT": "production",
+    "CREATE_ROOM_API_KEY": "change-this-to-a-secure-key"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "dev": {
+      "vars": {
+        "FRONTEND_URL": "http://localhost:3000",
+        "ENVIRONMENT": "development",
+        "CREATE_ROOM_API_KEY": "dev-key-for-testing"
+      },
+      "durable_objects": {
+        "bindings": [
+          {
+            "class_name": "GameRoom",
+            "name": "GAME_ROOM"
+          }
+        ]
+      }
+    },
+    "staging": {
+      "vars": {
+        "FRONTEND_URL": "https://staging.yourvtt.com",
+        "ENVIRONMENT": "staging",
+        "CREATE_ROOM_API_KEY": "change-this-to-a-secure-key"
+      }
+    }
+  }
+}

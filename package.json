@@ -1,0 +1,24 @@
+{
+  "name": "virtual-tabletop",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "workspaces": [
+    "api",
+    "website"
+  ],
+  "scripts": {
+    "preinstall": "node -e \"if (process.env.npm_execpath && !process.env.npm_execpath.includes('pnpm')) { console.error('\\u001b[31m❌ Please use pnpm instead of npm/yarn\\u001b[0m'); process.exit(1); }\"",
+    "format-and-lint": "biome check .",
+    "format-and-lint:fix": "biome check . --write",
+    "test": "turbo test",
+    "dev": "turbo dev"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.4",
+    "turbo": "^2.5.4"
+  }
+}

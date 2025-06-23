@@ -1,0 +1,45 @@
+{
+  "comment": "Cloudflare Rate Limiting Rules for Production",
+  "rules": [
+    {
+      "description": "Rate limit room creation",
+      "expression": "(http.request.uri.path eq \"/api/room/create\")",
+      "action": "challenge",
+      "ratelimit": {
+        "threshold": 5,
+        "period": 3600,
+        "characteristics": ["ip.src"]
+      }
+    },
+    {
+      "description": "Rate limit WebSocket connections",
+      "expression": "(http.request.uri.path matches \"^/room/[^/]+/ws$\")",
+      "action": "block",
+      "ratelimit": {
+        "threshold": 10,
+        "period": 60,
+        "characteristics": ["ip.src"]
+      }
+    },
+    {
+      "description": "Rate limit room state requests",
+      "expression": "(http.request.uri.path matches \"^/room/[^/]+/state$\")",
+      "action": "block",
+      "ratelimit": {
+        "threshold": 30,
+        "period": 60,
+        "characteristics": ["ip.src", "http.request.uri.path"]
+      }
+    },
+    {
+      "description": "Global rate limit per IP",
+      "expression": "(http.host eq \"yourvtt.com\")",
+      "action": "challenge",
+      "ratelimit": {
+        "threshold": 1000,
+        "period": 60,
+        "characteristics": ["ip.src"]
+      }
+    }
+  ]
+}

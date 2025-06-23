@@ -1,0 +1,48 @@
+# Turborepo
+.turbo
+
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment files
+.env.local
+.env.*.local
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+!.dev.vars.*.example
+
+# Testing artifacts
+playwright-report/
+playwright/.cache/
+test-results/
+.lighthouseci/
+coverage/
+__screenshots__
+test-artifacts
+_test_site
+# Environment files
+.env
+.env.local

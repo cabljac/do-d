@@ -1,0 +1,50 @@
+{
+  "name": "website",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "preinstall": "node -e \"if (process.env.npm_execpath && !process.env.npm_execpath.includes('pnpm')) { console.error('\\u001b[31m❌ Please use pnpm instead of npm/yarn\\u001b[0m'); process.exit(1); }\"",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "analyze": "vite build --mode analyze",
+    "size": "pnpm build && echo '\\n📦 Bundle Size:' && du -sh dist && echo '\\n📊 File Breakdown:' && find dist -name '*.js' -o -name '*.css' | xargs du -h | sort -h",
+    "size:detail": "pnpm build && echo '\\n📦 Total Size:' && du -sh dist && echo '\\n📊 All Files:' && du -ah dist | sort -h",
+    "size:check": "pnpm build && size=$(find dist -type f -exec stat -f%z {} + | awk '{s+=$1} END {print s}') && if [ \"$size\" -gt 102400 ]; then echo \"❌ Build size ($size bytes) exceeds 100KB limit!\"; exit 1; else echo \"✅ Build size ($size bytes) is within 100KB limit\"; fi",
+    "test:a11y": "vitest run --dir src/__tests__/a11y",
+    "test:perf": "lhci autorun",
+    "test:perf:debug": "pnpm build && pnpm preview & sleep 10 && curl -f http://localhost:4173/ && lhci autorun",
+    "test:perf:simple": "pnpm build && echo '<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Hello World</h1></body></html>' > dist/test.html && pnpm preview & sleep 5 && lhci autorun --url http://localhost:4173/test.html",
+    "test:perf:ci": "VITE_API_URL=http://localhost:8787 VITE_CREATE_ROOM_API_KEY=test-key lhci autorun",
+    "test:e2e": "pnpm test:a11y && pnpm test:perf",
+    "deploy": "pnpm build && wrangler pages deploy dist --project-name virtual-tabletop",
+    "deploy:staging": "pnpm build && wrangler pages deploy dist --project-name virtual-tabletop-staging",
+    "preview:deploy": "pnpm build && wrangler pages deploy dist --project-name virtual-tabletop-preview"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@lhci/cli": "^0.15.0",
+    "@playwright/test": "^1.53.1",
+    "@vitest/browser": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "happy-dom": "^18.0.1",
+    "lighthouse": "^12.6.1",
+    "playwright": "^1.53.1",
+    "rollup-plugin-visualizer": "^6.0.3",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.20.5"
+  }
+}
