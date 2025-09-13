@@ -1,3 +1,8 @@
+/* Global box-sizing to prevent overflow issues */
+* {
+  box-sizing: border-box;
+}
+
 /* Modern Glassmorphism Theme variables */
 :root {
   /* Modern color palette */
@@ -785,7 +790,6 @@ select:focus {
   border-radius: 0.5rem;
   font-size: 1rem;
   transition: var(--transition);
-  box-sizing: border-box;
 }
 
 .form-group input::placeholder {

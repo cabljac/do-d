@@ -19,6 +19,10 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
   private isMovingToken = false;
   private cursorPosition: { x: number; y: number } | null = null;
   private justDropped = false;
+  private clickToMoveMode = false;
+  private hoverGridPosition: { x: number; y: number } | null = null;
+  private isDragInitiated = false;
+  private isMouseDown = false;
   private resizeHandler!: () => void;
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -95,6 +99,11 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     // Draw tokens
     if (this.gameState) {
       this.drawTokens();
+    }
+
+    // Draw hover preview for click-to-move (in world coordinates)
+    if (this.clickToMoveMode && this.selectedToken && this.hoverGridPosition) {
+      this.drawHoverPreview();
     }
 
     // Restore context
@@ -336,7 +345,7 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     if (!this.selectedToken) return;
 
     // Draw a subtle instruction panel
-    const panelWidth = 300;
+    const panelWidth = 350;
     const panelHeight = 60;
     const panelX = 20;
     const panelY = 20;
@@ -361,11 +370,12 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     this.ctx.fillText(`Selected: ${tokenName}`, panelX + 10, panelY + 10);
     this.ctx.font = `12px ${FONT_SYSTEM}`;
     this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-    this.ctx.fillText(
-      "Drag to a new position or press Escape to deselect",
-      panelX + 10,
-      panelY + 35,
-    );
+
+    const instructionText = this.clickToMoveMode
+      ? "Click an empty square to move or drag to a new position"
+      : "Drag to a new position or press Escape to deselect";
+
+    this.ctx.fillText(instructionText, panelX + 10, panelY + 35);
 
     this.ctx.restore();
   }
@@ -394,6 +404,7 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
   }
 
   private handleMouseDown(e: MouseEvent) {
+    this.isMouseDown = true;
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -401,8 +412,20 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     const token = this.getTokenAt(gridPos.x, gridPos.y);
 
     if (token) {
-      // Select token (don't start moving yet)
+      // Check if we're in click-to-move mode with a different token
+      if (this.clickToMoveMode && this.selectedToken && this.selectedToken.id !== token.id) {
+        // Switch selection to new token
+        this.selectedToken = token;
+        this.emit("token-select", { tokenId: token.id });
+        this.render();
+        return;
+      }
+
+      // Select token for potential click-to-move or drag
       this.selectedToken = token;
+      this.clickToMoveMode = true;
+      this.isDragInitiated = false;
+      console.log("Token selected for click-to-move:", token.id, "Mode:", this.clickToMoveMode);
       this.emit("token-select", { tokenId: token.id });
 
       // Store the starting position for potential drag
@@ -411,6 +434,14 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
         y: e.clientY - this.offset.y,
       };
     } else {
+      // Check if we're in click-to-move mode
+      if (this.clickToMoveMode && this.selectedToken) {
+        // Execute click-to-move
+        console.log("Executing click-to-move to", gridPos);
+        this.executeClickToMove(gridPos);
+        return;
+      }
+
       // Deselect current token if clicking on empty space
       if (this.selectedToken) {
         this.selectedToken = null;
@@ -427,31 +458,50 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
   }
 
   private handleMouseMove(e: MouseEvent) {
-    if (this.isDragging) {
-      // Pan the view
-      this.offset.x = e.clientX - this.dragStart.x;
-      this.offset.y = e.clientY - this.dragStart.y;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Update hover position for click-to-move preview
+    if (this.clickToMoveMode && this.selectedToken && !this.isDragInitiated) {
+      const gridPos = this.screenToGrid(x, y);
+      const token = this.getTokenAt(gridPos.x, gridPos.y);
+
+      // Only show hover preview on empty squares
+      if (!token) {
+        this.hoverGridPosition = gridPos;
+      } else {
+        this.hoverGridPosition = null;
+      }
       this.render();
-    } else if (this.selectedToken && !this.isMovingToken) {
-      // Check if we should start moving the token (mouse moved while button is held)
+    }
+
+    // Check for drag initiation (only when mouse is down)
+    if (this.isMouseDown && this.selectedToken && !this.isDragInitiated && !this.isMovingToken) {
       const mouseDeltaX = Math.abs(e.clientX - (this.dragStart.x + this.offset.x));
       const mouseDeltaY = Math.abs(e.clientY - (this.dragStart.y + this.offset.y));
       const dragThreshold = 5; // pixels
 
       if (mouseDeltaX > dragThreshold || mouseDeltaY > dragThreshold) {
-        // Start moving the token
+        // Transition from click-to-move to drag mode
+        this.clickToMoveMode = false;
+        this.isDragInitiated = true;
         this.isMovingToken = true;
+        this.hoverGridPosition = null;
         this.justDropped = false; // Reset the flag when starting to move
       }
-    } else if (this.isMovingToken && this.selectedToken && !this.justDropped) {
-      // Update preview position and cursor position
-      const rect = this.canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+    }
 
+    if (this.isDragging) {
+      // Pan the view
+      this.offset.x = e.clientX - this.dragStart.x;
+      this.offset.y = e.clientY - this.dragStart.y;
+      this.render();
+    } else if (this.isMovingToken && this.selectedToken && !this.justDropped) {
+      // Update preview position and cursor position for drag
       this.cursorPosition = { x, y };
       this.render();
-    } else {
+    } else if (!this.isMovingToken) {
       // Clear preview position when not moving
       this.cursorPosition = null;
       this.justDropped = false; // Reset the flag
@@ -459,8 +509,9 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
   }
 
   private handleMouseUp(e: MouseEvent) {
+    this.isMouseDown = false;
     if (this.isMovingToken && this.selectedToken) {
-      // Move token
+      // Move token via drag
       const rect = this.canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -473,20 +524,49 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
           x: gridPos.x,
           y: gridPos.y,
         });
-
-        // Only deselect if the token was actually moved
-        this.selectedToken = null;
-        this.emit("token-deselect");
-      } else {
-        // Token wasn't moved, keep it selected
       }
+
+      // Clear selection after drag
+      this.clearSelection();
     }
 
     this.isDragging = false;
     this.isMovingToken = false;
+    this.isDragInitiated = false;
     this.cursorPosition = null;
     this.justDropped = true;
     this.render(); // Re-render to clear the preview immediately
+  }
+
+  private executeClickToMove(gridPos: { x: number; y: number }): void {
+    if (!this.selectedToken) return;
+
+    // Check if clicking on the same position
+    if (gridPos.x === this.selectedToken.x && gridPos.y === this.selectedToken.y) {
+      // Keep selection when clicking same position
+      return;
+    }
+
+    // Check if destination is occupied
+    const targetToken = this.getTokenAt(gridPos.x, gridPos.y);
+    if (targetToken) {
+      // Switch selection to target token
+      this.selectedToken = targetToken;
+      this.emit("token-select", { tokenId: targetToken.id });
+      this.render();
+      return;
+    }
+
+    // Execute the move
+    this.emit("token-move", {
+      tokenId: this.selectedToken.id,
+      x: gridPos.x,
+      y: gridPos.y,
+    });
+
+    // Clear selection after successful move
+    this.clearSelection();
+    this.render();
   }
 
   private handleWheel(e: WheelEvent) {
@@ -599,6 +679,8 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
   clearSelection(): void {
     if (this.selectedToken) {
       this.selectedToken = null;
+      this.clickToMoveMode = false;
+      this.hoverGridPosition = null;
       this.emit("token-deselect");
     }
   }
@@ -705,6 +787,30 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
 
     // Remove after announcement
     setTimeout(() => announcement.remove(), 1000);
+  }
+
+  private drawHoverPreview(): void {
+    if (!this.clickToMoveMode || !this.selectedToken || !this.hoverGridPosition) return;
+
+    const x = this.hoverGridPosition.x * this.gridSize;
+    const y = this.hoverGridPosition.y * this.gridSize;
+    const sizeMultiplier = this.selectedToken.size || 1;
+    const actualSize = this.gridSize * sizeMultiplier;
+
+    this.ctx.save();
+
+    // Draw semi-transparent preview square
+    this.ctx.fillStyle = `${this.selectedToken.color}20`;
+    this.ctx.fillRect(x, y, actualSize, actualSize);
+
+    // Draw dashed border
+    this.ctx.strokeStyle = `${this.selectedToken.color}60`;
+    this.ctx.lineWidth = 2;
+    this.ctx.setLineDash([5, 5]);
+    this.ctx.strokeRect(x, y, actualSize, actualSize);
+    this.ctx.setLineDash([]);
+
+    this.ctx.restore();
   }
 
   private drawPreviewToken() {

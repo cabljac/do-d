@@ -15,7 +15,7 @@
     "format-and-lint": "biome check .",
     "format-and-lint:fix": "biome check . --write",
     "test": "turbo test",
-    "dev": "turbo dev"
+    "dev": "turbo dev --filter=api --filter=website"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.4",
