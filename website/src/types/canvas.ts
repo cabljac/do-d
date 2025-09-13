@@ -24,6 +24,10 @@ export interface CanvasEventMap {
   "canvas-zoom": { zoom: number; centerX: number; centerY: number };
   /** Emitted when panning the canvas */
   "canvas-pan": { offsetX: number; offsetY: number };
+  /** Emitted when requesting to delete a token */
+  "token-delete-request": { tokenId: string; tokenName: string };
+  /** Emitted when confirming token deletion */
+  "token-delete": { tokenId: string };
   /** Index signature for dynamic events */
   [key: string]: unknown;
 }

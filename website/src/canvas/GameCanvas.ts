@@ -23,6 +23,7 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
   private hoverGridPosition: { x: number; y: number } | null = null;
   private isDragInitiated = false;
   private isMouseDown = false;
+  private deleteButtonBounds: { x: number; y: number; width: number; height: number } | null = null;
   private resizeHandler!: () => void;
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -378,6 +379,37 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     this.ctx.fillText(instructionText, panelX + 10, panelY + 35);
 
     this.ctx.restore();
+
+    // Add delete button
+    this.drawDeleteButton(panelX + panelWidth - 40, panelY + 10, 30, 30);
+  }
+
+  private drawDeleteButton(x: number, y: number, width: number, height: number): void {
+    // Glass button background
+    this.ctx.save();
+    this.ctx.fillStyle = "rgba(239, 68, 68, 0.2)"; // Red tint
+    this.ctx.fillRect(x, y, width, height);
+
+    // Border
+    this.ctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeRect(x, y, width, height);
+
+    // X icon
+    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    this.ctx.lineWidth = 2;
+    const padding = 8;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + padding, y + padding);
+    this.ctx.lineTo(x + width - padding, y + height - padding);
+    this.ctx.moveTo(x + width - padding, y + padding);
+    this.ctx.lineTo(x + padding, y + height - padding);
+    this.ctx.stroke();
+
+    this.ctx.restore();
+
+    // Store button bounds for click detection
+    this.deleteButtonBounds = { x, y, width, height };
   }
 
   private screenToGrid(screenX: number, screenY: number): { x: number; y: number } {
@@ -408,6 +440,23 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Check if clicking on delete button
+    if (
+      this.deleteButtonBounds &&
+      this.selectedToken &&
+      x >= this.deleteButtonBounds.x &&
+      x <= this.deleteButtonBounds.x + this.deleteButtonBounds.width &&
+      y >= this.deleteButtonBounds.y &&
+      y <= this.deleteButtonBounds.y + this.deleteButtonBounds.height
+    ) {
+      this.emit("token-delete-request", {
+        tokenId: this.selectedToken.id,
+        tokenName: this.selectedToken.name,
+      });
+      return;
+    }
+
     const gridPos = this.screenToGrid(x, y);
     const token = this.getTokenAt(gridPos.x, gridPos.y);
 
@@ -659,6 +708,23 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
     }
   }
 
+  deleteToken(tokenId: string): void {
+    if (!this.gameState || !this.gameState.tokens) return;
+
+    const token = this.gameState.tokens[tokenId];
+    if (!token) return;
+
+    // Remove from local state
+    delete this.gameState.tokens[tokenId];
+
+    // Clear selection if this was the selected token
+    if (this.selectedToken?.id === tokenId) {
+      this.clearSelection();
+    }
+
+    this.render();
+  }
+
   addToken(token: Token) {
     if (!this.gameState) {
       return;
@@ -709,6 +775,16 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
         e.preventDefault();
         this.clearSelection();
         this.render();
+        break;
+      case "Delete":
+      case "Backspace":
+        if (this.selectedToken && !this.isInputFocused()) {
+          e.preventDefault();
+          this.emit("token-delete-request", {
+            tokenId: this.selectedToken.id,
+            tokenName: this.selectedToken.name,
+          });
+        }
         break;
       case "ArrowLeft":
         e.preventDefault();
@@ -787,6 +863,16 @@ export class GameCanvas extends EventEmitter<CanvasEventMap> {
 
     // Remove after announcement
     setTimeout(() => announcement.remove(), 1000);
+  }
+
+  private isInputFocused(): boolean {
+    const activeElement = document.activeElement;
+    return (
+      activeElement?.tagName === "INPUT" ||
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.classList.contains("chat-input") ||
+      false
+    );
   }
 
   private drawHoverPreview(): void {

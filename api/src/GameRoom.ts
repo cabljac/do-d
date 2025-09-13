@@ -4,6 +4,7 @@ import type {
   BroadcastMessage,
   ChatMessage,
   ChatMessageData,
+  DeleteTokenMessage,
   DiceExpression,
   DiceResult,
   DiceRoll,
@@ -99,7 +100,13 @@ export class GameRoom extends DurableObject {
 
   private async handleMessage(
     ws: WebSocket,
-    message: JoinMessage | PingMessage | ChatMessageData | MoveTokenMessage | AddTokenMessage,
+    message:
+      | JoinMessage
+      | PingMessage
+      | ChatMessageData
+      | MoveTokenMessage
+      | AddTokenMessage
+      | DeleteTokenMessage,
   ) {
     console.log("GameRoom received message:", message.type, "from websocket");
     let player = this.connections.get(ws);
@@ -212,6 +219,15 @@ export class GameRoom extends DurableObject {
           this.processedOperations.add(message.idempotencyKey);
         }
         await this.handleAddToken(player, message);
+        break;
+
+      case "delete-token":
+        console.log("Received delete-token request from player:", player?.name || "unknown");
+        if (!player) {
+          ws.send(JSON.stringify({ type: "error", message: "Not authenticated" }));
+          return;
+        }
+        await this.handleDeleteToken(player, message as DeleteTokenMessage);
         break;
 
       default:
@@ -387,6 +403,28 @@ export class GameRoom extends DurableObject {
       type: "token-added",
       token,
       playerId: player.id,
+    });
+  }
+
+  private async handleDeleteToken(player: Player, message: DeleteTokenMessage) {
+    const tokenId = message.tokenId;
+
+    // Check if token exists
+    const token = this.state.tokens[tokenId];
+    if (!token) {
+      this.sendError(player.id, "Token not found");
+      return;
+    }
+
+    // Remove token from state
+    delete this.state.tokens[tokenId];
+    await this.saveState();
+
+    // Broadcast token deletion to all players
+    this.broadcast({
+      type: "token-deleted",
+      tokenId,
+      deletedBy: player.id,
     });
   }
 
@@ -601,7 +639,9 @@ export class GameRoom extends DurableObject {
 
       const parsedMessage = JSON.parse(messageStr);
       await this.handleMessage(ws, parsedMessage);
-    } catch (_e) {
+    } catch (e) {
+      console.error("Error handling message:", e);
+      console.error("Message that caused error:", message);
       ws.send(
         JSON.stringify({
           type: "error",

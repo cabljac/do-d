@@ -35,6 +35,11 @@ export interface AddTokenMessage extends WSMessage {
   imageUrl?: string;
 }
 
+export interface DeleteTokenMessage extends WSMessage {
+  type: "delete-token";
+  tokenId: string;
+}
+
 export interface JoinedResponse {
   type: "joined";
   playerId: string;
@@ -74,6 +79,12 @@ export interface TokenMovedResponse {
 export interface TokenAddedResponse {
   type: "token-added";
   token: Token;
+}
+
+export interface TokenDeletedResponse {
+  type: "token-deleted";
+  tokenId: string;
+  deletedBy: string;
 }
 
 export interface ErrorResponse {

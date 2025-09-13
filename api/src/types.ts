@@ -107,11 +107,17 @@ export interface AddTokenMessage extends WSMessage {
   imageUrl?: string;
 }
 
+export interface DeleteTokenMessage extends WSMessage {
+  type: "delete-token";
+  tokenId: string;
+}
+
 export type BroadcastMessage =
   | { type: "player-joined"; player: Player }
   | { type: "player-left"; playerId: string; playerName?: string }
   | { type: "state-update"; state: GameState }
   | { type: "token-moved"; tokenId: string; x: number; y: number; playerId: string }
   | { type: "token-added"; token: Token; playerId: string }
+  | { type: "token-deleted"; tokenId: string; deletedBy: string }
   | { type: "chat-message"; message: ChatMessage }
   | { type: "error"; message: string };

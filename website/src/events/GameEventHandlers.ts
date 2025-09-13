@@ -10,6 +10,7 @@ import type {
   PlayerLeftResponse,
   StateUpdateResponse,
   TokenAddedResponse,
+  TokenDeletedResponse,
   TokenFormDataWithPosition,
   TokenMoveData,
   TokenMovedResponse,
@@ -34,6 +35,7 @@ export class GameEventHandlers {
     this.client.on("player-left", this.handlePlayerLeft.bind(this));
     this.client.on("token-moved", this.handleTokenMoved.bind(this));
     this.client.on("token-added", this.handleTokenAdded.bind(this));
+    this.client.on("token-deleted", this.handleTokenDeleted.bind(this));
     this.client.on("error", this.handleError.bind(this));
   }
 
@@ -60,6 +62,27 @@ export class GameEventHandlers {
     this.canvas.on("token-deselect", () => {
       // Token deselection is now handled visually on the canvas
       console.log("Token deselected");
+    });
+
+    this.canvas.on("token-delete-request", async (data: { tokenId: string; tokenName: string }) => {
+      const { DeleteConfirmationModal } = await import(
+        "../components/modals/DeleteConfirmationModal"
+      );
+      const modal = new DeleteConfirmationModal();
+      modal.show(data.tokenName, () => {
+        this.canvas.emit("token-delete", { tokenId: data.tokenId });
+      });
+    });
+
+    this.canvas.on("token-delete", (data: { tokenId: string }) => {
+      if (!this.hasJoined) {
+        console.log("Cannot delete token - not yet joined");
+        return;
+      }
+      this.client.sendMessage({
+        type: "delete-token",
+        tokenId: data.tokenId,
+      });
     });
   }
 
@@ -165,6 +188,11 @@ export class GameEventHandlers {
   private handleTokenAdded(data: TokenAddedResponse): void {
     console.log("Frontend received token-added event:", data);
     this.canvas.addToken(data.token);
+  }
+
+  private handleTokenDeleted(data: TokenDeletedResponse): void {
+    console.log("Token deleted:", data.tokenId);
+    this.canvas.deleteToken(data.tokenId);
   }
 
   private handleError(data: ErrorResponse): void {
